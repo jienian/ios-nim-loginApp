@@ -82,6 +82,13 @@ jobs:
           done
           ls -lh screenshots
 
+          echo "Building UI tests before recording (keeps home-screen wait out of the video)..."
+          xcodebuild build-for-testing \
+            -project NimLoginApp.xcodeproj \
+            -scheme NimLoginAppUITests \
+            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+            CODE_SIGNING_ALLOWED=NO
+
           echo "Recording FULL app flow video (real UI test taps)..."
           mkdir -p videos build/test-results
           xcrun simctl terminate "$DEVICE_ID" com.nim.NimLoginApp || true
@@ -90,7 +97,7 @@ jobs:
           RECORD_PID=$!
           sleep 2
           set +e
-          xcodebuild test \
+          xcodebuild test-without-building \
             -project NimLoginApp.xcodeproj \
             -scheme NimLoginAppUITests \
             -destination "platform=iOS Simulator,id=$DEVICE_ID" \
@@ -136,12 +143,16 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           # Base the commit on the latest main to avoid binary rebase conflicts
           # when another run advanced main while this run was recording.
+          # Save fresh captures aside first: checkout -f would discard the docs copies.
+          mkdir -p /tmp/captures
+          cp -R screenshots /tmp/captures/ 2>/dev/null || true
+          cp -R videos /tmp/captures/ 2>/dev/null || true
           git fetch origin main
-          git checkout -B main origin/main
+          git checkout -f -B main origin/main
           mkdir -p docs/screenshots docs/videos
-          cp screenshots/*.png docs/screenshots/
-          cp videos/fault-analysis-flow.mp4 docs/videos/ 2>/dev/null || true
-          cp videos/full-app-flow.mp4 docs/videos/ 2>/dev/null || true
+          cp /tmp/captures/screenshots/*.png docs/screenshots/
+          cp /tmp/captures/videos/fault-analysis-flow.mp4 docs/videos/ 2>/dev/null || true
+          cp /tmp/captures/videos/full-app-flow.mp4 docs/videos/ 2>/dev/null || true
           git add docs/screenshots/login.png docs/screenshots/login-error.png docs/screenshots/register.png docs/screenshots/home.png docs/screenshots/login-dark.png docs/screenshots/home-dark.png docs/screenshots/diagnostics.png docs/videos/fault-analysis-flow.mp4 docs/videos/full-app-flow.mp4
           if git diff --cached --quiet; then
             echo "Screenshots unchanged"
