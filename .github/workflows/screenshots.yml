@@ -69,14 +69,28 @@ jobs:
           echo "Using simulator: $DEVICE_ID"
           xcrun simctl boot "$DEVICE_ID" || true
           xcrun simctl bootstatus "$DEVICE_ID" -b
-          xcrun simctl install "$DEVICE_ID" "$APP_PATH"
-          echo "Running unit tests..."
+
+          echo "Running unit tests (isolated derived data, before app install)..."
+          mkdir -p build
+          set +e
           xcodebuild test \
             -project NimLoginApp.xcodeproj \
             -scheme NimLoginApp \
             -destination "platform=iOS Simulator,id=$DEVICE_ID" \
             -only-testing:NimLoginAppTests \
-            CODE_SIGNING_ALLOWED=NO
+            -derivedDataPath build/TestDerivedData \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee build/unit-test.log
+          UNIT_TEST_STATUS=${PIPESTATUS[0]}
+          set -e
+          echo "$UNIT_TEST_STATUS" > build/unit-test-status.txt
+          if [ "$UNIT_TEST_STATUS" != "0" ]; then
+            echo "Unit tests failed (status $UNIT_TEST_STATUS); continuing so screenshots still publish. Tail of log:"
+            tail -80 build/unit-test.log || true
+          else
+            echo "Unit tests passed."
+          fi
+
+          xcrun simctl install "$DEVICE_ID" "$APP_PATH"
 
           mkdir -p screenshots
           for mode in login login-error register home login-dark home-dark diagnostics; do
@@ -84,8 +98,16 @@ jobs:
             # Clear any saved session so each screenshot starts clean.
             xcrun simctl spawn "$DEVICE_ID" defaults delete com.nim.NimLoginApp 2>/dev/null || true
             xcrun simctl launch "$DEVICE_ID" com.nim.NimLoginApp "SCREENSHOT=$mode"
-            sleep 4
+            sleep 6
             xcrun simctl io "$DEVICE_ID" screenshot "screenshots/$mode.png"
+            # A black/blank capture is ~70KB while a rendered screen is >150KB.
+            # If the app had not rendered its first frame yet, wait and retake once.
+            SIZE=$(stat -f%z "screenshots/$mode.png" 2>/dev/null || echo 0)
+            if [ "$SIZE" -lt 90000 ]; then
+              echo "Screenshot $mode.png looks blank (${SIZE} bytes); retaking after extra wait..."
+              sleep 4
+              xcrun simctl io "$DEVICE_ID" screenshot "screenshots/$mode.png"
+            fi
           done
           ls -lh screenshots
 
@@ -146,6 +168,14 @@ jobs:
           path: videos/*.mp4
           if-no-files-found: error
 
+      - name: Upload unit test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-log
+          path: build/unit-test.log
+          if-no-files-found: warn
+
       - name: Commit screenshots to docs
         if: github.ref == 'refs/heads/main'
         run: |
@@ -173,4 +203,15 @@ jobs:
           else
             git commit -m "docs: update simulator screenshots [skip ci]"
             git push origin HEAD:main
+          fi
+
+      - name: Fail if unit tests failed
+        if: always()
+        run: |
+          STATUS="$(cat build/unit-test-status.txt 2>/dev/null || echo missing)"
+          echo "Unit test exit status: $STATUS"
+          if [ "$STATUS" != "0" ]; then
+            echo "Unit tests did not pass; see unit-test.log artifact."
+            tail -60 build/unit-test.log || true
+            exit 1
           fi
