@@ -44,6 +44,40 @@ final class AuthViewModel: ObservableObject {
         if let saved = defaults.string(forKey: Keys.rememberedAccount) {
             account = saved
         }
+        configureForScreenshotIfNeeded()
+    }
+
+    /// Used by the GitHub Actions screenshot job: launch with
+    /// `SCREENSHOT=login|login-error|register|home` to render a fixed state.
+    private func configureForScreenshotIfNeeded() {
+        guard let arg = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("SCREENSHOT=") }) else { return }
+        let modeName = String(arg.dropFirst("SCREENSHOT=".count))
+        session = nil
+        defaults.removeObject(forKey: Keys.session)
+        switch modeName {
+        case "login":
+            mode = .login
+            account = MockAuthService.demoAccount
+            password = MockAuthService.demoPassword
+        case "login-error":
+            mode = .login
+            account = MockAuthService.demoAccount
+            password = "111111"
+            status = .failure(AuthError.invalidCredentials.errorDescription ?? "账号或密码不正确")
+        case "register":
+            mode = .register
+            account = "new@nim.app"
+            password = "Nim123456!"
+            confirmPassword = "Nim123456!"
+        case "home":
+            session = AuthSession(
+                user: User(id: "demo", account: MockAuthService.demoAccount, nickname: "Nim Demo"),
+                token: "screenshot-token",
+                loginDate: Date()
+            )
+        default:
+            break
+        }
     }
 
     var isLoading: Bool { status == .loading }
