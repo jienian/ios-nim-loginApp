@@ -4,6 +4,14 @@
 
 输入校验 → 状态管理 → 模拟网络请求 → 成功/失败处理 → 登录态保持 → 退出登录。
 
+## Demo 演示
+
+| 登录 | 登录失败 | 注册 | 登录成功 |
+| --- | --- | --- | --- |
+| ![登录页](docs/screenshots/login.svg) | ![登录失败](docs/screenshots/login-error.svg) | ![注册页](docs/screenshots/register.svg) | ![主页](docs/screenshots/home.svg) |
+
+演示账号：`demo@nim.app` / `123456`，故意输错密码即可看到失败提示。以上为 UI 预览图，真机/模拟器运行效果以 Xcode Run 为准。
+
 ## 功能
 
 - 账号输入：支持邮箱 / 手机号，自动判断类型并校验格式

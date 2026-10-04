@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844"><rect width="390" height="844" fill="white"/><text x="24" y="38" font-family="sans-serif" font-size="15" font-weight="700">9:41</text><text x="335" y="38" font-family="sans-serif" font-size="13">5G</text><text x="24" y="80" font-family="sans-serif" font-size="18" font-weight="700">主页</text>
+<circle cx="195" cy="160" r="30" fill="#34c759"/><text x="182" y="172" font-family="sans-serif" font-size="38" fill="white">✓</text>
+<text x="145" y="235" font-family="sans-serif" font-size="26" font-weight="700">登录成功</text>
+<text x="162" y="300" font-family="sans-serif" font-size="17" font-weight="600">Nim Demo</text>
+<text x="140" y="326" font-family="sans-serif" font-size="14" fill="#7a7a80">demo@nim.app</text>
+<text x="78" y="352" font-family="sans-serif" font-size="12" fill="#8e8e93">登录时间：Oct 4, 2026 at 4:00 PM</text>
+<rect x="24" y="390" width="342" height="44" rx="12" fill="none" stroke="#ff9a9a"/><text x="162" y="418" font-family="sans-serif" font-size="15" fill="#d70015">退出登录</text></svg>
