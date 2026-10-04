@@ -116,6 +116,23 @@ INFO system: app launched successfully
 - 本 App 导出格式和普通文本日志可以解析
 - incident 报告引用证据并声明评分不是统计概率
 
+## 本地运行验证记录（2026-10-05）
+
+用户在本地 Xcode 运行 App 后，进入「工程师诊断中心」做了一次完整操作验证：
+
+| 步骤 1：收集诊断日志 | 步骤 2：开始故障分析 | 步骤 3：查看证据化报告 |
+| --- | --- | --- |
+| ![本地收集诊断日志](screenshots/local-diagnostics-log-collection.png) | ![本地故障分析结果](screenshots/local-fault-analysis-result.png) | ![本地故障分析报告明细](screenshots/local-fault-analysis-result-detail.png) |
+
+这次运行的关键结果：
+
+- 「一键收集诊断日志」收集到 13 条日志，来源包括 `app-event`、`device-snapshot`、`app-bundle`、`diagnostic-collector`。
+- 日志里包含真实登录事件：`auth.attempt`、`[ERROR] auth.failure`（登录失败：账号或密码不正确）和后续 `auth.success`（1223ms）；账号只以 `d***@nim.app` 脱敏形式出现，密码未入日志。
+- 「开始故障分析」输出：共分析 13 条日志（去重 10 条；ERROR 1 / WARN 0），首要假设为「登录 / 认证异常」，证据强度评分 67/100。
+- 报告引用了证据 `01:25:24 [ERROR] auth/auth.failure`、`01:25:22 [INFO] auth/auth.attempt`，并把 `01:25:43 [INFO] auth/auth.success` 列为反证/恢复记录。因此这次结论被表述为已恢复的一次凭据失败，需要继续核对同一 `attempt_id` 的返回码与耗时，而不是持续性的认证系统故障。
+
+这组截图是本地运行证据，不替代单元测试；它证明真实登录事件能进入诊断中心，并被分析流水线引用、评分和解释。
+
 ## 已知限制与后续接入点
 
 - 当前登录后端仍是 Mock；接入真实 API 后应把客户端 `attempt_id` 与服务端请求 ID 对齐。

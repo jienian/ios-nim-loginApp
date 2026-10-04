@@ -67,6 +67,22 @@
 
 单测覆盖了：登录失败被抓取并引用证据、良性部件状态不误报、重复失败折叠计数且分数上升、认证与摄像头混合故障各自保留假设、导入的网络超时/503 日志命中网络异常、日志文本解析和 incident 报告生成。
 
+### 本地运行验证记录（2026-10-05）
+
+用户在本地 Xcode 运行后进入「工程师诊断中心」，按「一键收集诊断日志 → 开始故障分析」完成了一次真实操作验证：
+
+| 步骤 1：收集诊断日志 | 步骤 2：开始故障分析 | 步骤 3：查看证据化报告 |
+| --- | --- | --- |
+| ![本地收集诊断日志](docs/screenshots/local-diagnostics-log-collection.png) | ![本地故障分析结果](docs/screenshots/local-fault-analysis-result.png) | ![本地故障分析报告明细](docs/screenshots/local-fault-analysis-result-detail.png) |
+
+本次截图里的结果：
+
+- 收集到 **13 条诊断日志**，来源包括 `app-event`、`device-snapshot`、`app-bundle`、`diagnostic-collector`。
+- 日志中能看到真实登录链路：`auth.attempt`、一次 `[ERROR] auth.failure`（登录失败：账号或密码不正确）、随后 `auth.success`（耗时 1223ms），账号均已脱敏为 `d***@nim.app`。
+- 点击「开始故障分析」后，系统输出：共分析 13 条日志（去重 10 条；ERROR 1 / WARN 0），首要假设为 **登录 / 认证异常（评分 67/100）**。
+- 报告引用了原始证据和反证：证据为 `01:25:24 [ERROR] auth/auth.failure` 与 `01:25:22 [INFO] auth/auth.attempt`；反证/恢复为 `01:25:43 [INFO] auth/auth.success`。这说明它识别到这是一次已恢复的凭据失败，而不是直接宣称持续性的认证系统故障。
+- 报告建议继续核对同一 `attempt_id` 的请求、返回码和耗时，再检查账号状态、密码策略、失败锁定与认证服务日志。
+
 ## 技术结构（MVVM）
 
 ```
