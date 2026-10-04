@@ -115,6 +115,13 @@ jobs:
             echo "Full flow UI test failed, see log"; tail -120 build/full-flow-test.log || true
             # Keep the step green so screenshots/video still publish; full log is in the test log artifact step below.
           fi
+          # Compress so the recording can actually be downloaded/viewed
+          # (the raw 1206x2622 capture is ~30-60 MB and transfers keep failing).
+          if command -v ffmpeg >/dev/null 2>&1; then
+            ffmpeg -y -i videos/full-app-flow.mp4 -vf "scale=iw/2:ih/2" -c:v libx264 -crf 30 -preset veryfast -an videos/full-app-flow-small.mp4 \
+              && mv videos/full-app-flow-small.mp4 videos/full-app-flow.mp4 || true
+            ls -lh videos
+          fi
           # Backward-compatible name expected by docs/README video link.
           cp videos/full-app-flow.mp4 videos/fault-analysis-flow.mp4 || true
 
