@@ -72,7 +72,7 @@ jobs:
           xcrun simctl install "$DEVICE_ID" "$APP_PATH"
 
           mkdir -p screenshots
-          for mode in login login-error register home login-dark home-dark; do
+          for mode in login login-error register home login-dark home-dark diagnostics; do
             xcrun simctl terminate "$DEVICE_ID" com.nim.NimLoginApp || true
             # Clear any saved session so each screenshot starts clean.
             xcrun simctl spawn "$DEVICE_ID" defaults delete com.nim.NimLoginApp 2>/dev/null || true
@@ -96,7 +96,7 @@ jobs:
           cp screenshots/*.png docs/screenshots/
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/screenshots/login.png docs/screenshots/login-error.png docs/screenshots/register.png docs/screenshots/home.png docs/screenshots/login-dark.png docs/screenshots/home-dark.png
+          git add docs/screenshots/login.png docs/screenshots/login-error.png docs/screenshots/register.png docs/screenshots/home.png docs/screenshots/login-dark.png docs/screenshots/home-dark.png docs/screenshots/diagnostics.png
           if git diff --cached --quiet; then
             echo "Screenshots unchanged"
           else
