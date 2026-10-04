@@ -12,15 +12,19 @@ final class DiagnosticsViewModel: ObservableObject {
     @Published var isAnalyzing = false
     @Published var analysisStageIndex = 0
     @Published var selectedDefectID: String?
+    @Published var importMessage: String?
     /// True when launched with SCREENSHOT=diagnostics-flow (used for video recording):
     /// the view auto-collects logs and then auto-runs fault analysis.
     let shouldAutoFlow: Bool
 
     private let defaults: UserDefaults
+    private let eventLog: AppEventLog
     private enum Keys { static let defects = "diagnostics.defects" }
 
-    init(defaults: UserDefaults = .standard, loadSamplesIfEmpty: Bool = true) {
+    init(defaults: UserDefaults = .standard, loadSamplesIfEmpty: Bool = true,
+         eventLog: AppEventLog = .shared) {
         self.defaults = defaults
+        self.eventLog = eventLog
         shouldAutoFlow = ProcessInfo.processInfo.arguments.contains("SCREENSHOT=diagnostics-flow")
         if shouldAutoFlow {
             // Slower, video-friendly pacing.
@@ -80,38 +84,25 @@ final class DiagnosticsViewModel: ObservableObject {
 
     // MARK: - Diagnostic log collection
 
-    /// Simulates gathering a diagnostic bundle: device info, auth/theme state,
-    /// and component health probes, streamed in as log entries.
+    /// Collects the evidence this app can legitimately observe:
+    /// persisted structured app events plus a live device/app snapshot.
+    /// External hardware or server logs enter through `importLogs(_:)`; the
+    /// app does not fabricate component probe errors.
     func collectLogs(account: String?) async {
         guard !isCollecting else { return }
         isCollecting = true
         collectionProgress = 0
         logs = []
+        analysis = nil
+        importMessage = nil
 
-        let device = UIDevice.current
-        // Real app events recorded during actual use (login attempts,
-        // failures, successes) are merged in first, so analysis covers
-        // the login flow too — not only the hardware probes below.
-        let appEvents = AppEventLog.shared.entries()
         var entries: [DiagnosticLogEntry] = [
             .init(timestamp: Date(), level: .info, category: "system",
-                  message: "开始收集诊断日志 · \(device.model) · \(device.systemName) \(device.systemVersion)"),
-            .init(timestamp: Date(), level: .info, category: "system",
-                  message: "App 版本 1.0 (1) · 登录账号 \(account ?? "未登录")"),
+                  message: "开始收集诊断日志 · \(UIDevice.current.model) · \(UIDevice.current.systemName) \(UIDevice.current.systemVersion)",
+                  source: "diagnostic-collector"),
         ]
-        entries.append(contentsOf: appEvents)
-        entries.append(contentsOf: [
-            .init(timestamp: Date(), level: .warn, category: "thermal",
-                  message: "thermal 状态偏高：nominal→fair，SoC 温度曲线待复核"),
-            .init(timestamp: Date(), level: .error, category: "camera",
-                  message: "camera OIS 对焦马达响应超时（120ms），近距离对焦失败"),
-            .init(timestamp: Date(), level: .warn, category: "battery",
-                  message: "battery 待机掉电速率 2.3%/h，高于基线 0.8%/h"),
-            .init(timestamp: Date(), level: .info, category: "display",
-                  message: "display 触控网格扫描完成，右上区域采样点待复测"),
-            .init(timestamp: Date(), level: .info, category: "system",
-                  message: "诊断日志收集完成，共生成日志包 1 份"),
-        ])
+        entries.append(contentsOf: eventLog.entries().sorted { $0.timestamp < $1.timestamp })
+        entries.append(contentsOf: deviceSnapshotEntries(account: account))
 
         let stepDelay: UInt64 = shouldAutoFlow ? 1_100_000_000 : 260_000_000
         for (i, entry) in entries.enumerated() {
@@ -120,6 +111,87 @@ final class DiagnosticsViewModel: ObservableObject {
             collectionProgress = Double(i + 1) / Double(entries.count)
         }
         isCollecting = false
+    }
+
+    private func deviceSnapshotEntries(account: String?) -> [DiagnosticLogEntry] {
+        let now = Date()
+        let device = UIDevice.current
+        device.isBatteryMonitoringEnabled = true
+
+        let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
+        let thermal: String
+        switch ProcessInfo.processInfo.thermalState {
+        case .nominal: thermal = "nominal"
+        case .fair: thermal = "fair"
+        case .serious: thermal = "serious"
+        case .critical: thermal = "critical"
+        @unknown default: thermal = "unknown"
+        }
+
+        let batteryText: String
+        if device.batteryLevel >= 0 {
+            let percent = Int((device.batteryLevel * 100).rounded())
+            let state: String
+            switch device.batteryState {
+            case .charging: state = "charging"
+            case .full: state = "full"
+            case .unplugged: state = "unplugged"
+            case .unknown: state = "unknown"
+            @unknown default: state = "unknown"
+            }
+            batteryText = "battery 电量 \(percent)% · 状态 \(state) · 低电量模式 \(ProcessInfo.processInfo.isLowPowerModeEnabled ? "开启" : "关闭")"
+        } else {
+            batteryText = "battery 电量不可用（模拟器或系统未提供读数，不作为故障证据）"
+        }
+
+        let uptimeHours = ProcessInfo.processInfo.systemUptime / 3600
+        var entries: [DiagnosticLogEntry] = [
+            .init(timestamp: now, level: .info, category: "system",
+                  message: "App 版本 \(shortVersion) (\(build)) · 登录账号 \(account.map { _ in "已登录（账号已脱敏）" } ?? "未登录")",
+                  source: "app-bundle"),
+            .init(timestamp: now, level: .info, category: "thermal",
+                  message: "thermal 当前状态：\(thermal)（设备即时状态快照，不是单独的故障结论）",
+                  source: "device-snapshot"),
+            .init(timestamp: now, level: .info, category: "battery",
+                  message: batteryText, source: "device-snapshot"),
+            .init(timestamp: now, level: .info, category: "system",
+                  message: String(format: "system 系统运行时间 %.1f 小时 · 时区 %@", uptimeHours, TimeZone.current.identifier),
+                  source: "device-snapshot"),
+        ]
+
+        if let attributes = try? FileManager.default.attributesOfFileSystem(forPath: NSHomeDirectory()),
+           let free = attributes[.systemFreeSize] as? NSNumber {
+            let gb = free.doubleValue / 1_000_000_000
+            entries.append(.init(timestamp: now, level: .info, category: "system",
+                                 message: String(format: "storage 可用空间 %.1f GB（仅用于判断日志/缓存空间不足）", gb),
+                                 source: "device-snapshot"))
+        }
+        return entries
+    }
+
+    /// Imports engineer-supplied log text (for example an exported service log
+    /// or a text excerpt from a device report) into the current bundle.
+    @discardableResult
+    func importLogs(_ text: String) -> Int {
+        let parsed = DiagnosticLogParser.parse(text)
+        guard !parsed.isEmpty else {
+            importMessage = "没有解析到日志行，请检查文本格式。"
+            return 0
+        }
+        logs.append(contentsOf: parsed)
+        logs.sort { $0.timestamp < $1.timestamp }
+        analysis = nil
+        importMessage = "已导入 \(parsed.count) 条外部日志，可继续开始故障分析。"
+        return parsed.count
+    }
+
+    func importLogsFromClipboard() {
+        guard let text = UIPasteboard.general.string, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            importMessage = "剪贴板里没有可用日志文本。"
+            return
+        }
+        _ = importLogs(text)
     }
 
     /// Video/demo flow: wait a beat, collect logs slowly, pause, then analyse.
@@ -134,12 +206,28 @@ final class DiagnosticsViewModel: ObservableObject {
     func clearLogs() {
         logs = []
         analysis = nil
+        importMessage = nil
     }
 
     var logBundleText: String {
         let f = ISO8601DateFormatter()
-        return logs.map { "[\($0.level.rawValue)] \(f.string(from: $0.timestamp)) \($0.category): \($0.message)" }
-            .joined(separator: "\n")
+        return logs.map { entry in
+            var line = "[\(entry.level.rawValue)] \(f.string(from: entry.timestamp)) \(entry.category): \(entry.message)"
+            var metadata: [String] = []
+            if let event = entry.event { metadata.append("event=\(event)") }
+            if let source = entry.source { metadata.append("source=\(source)") }
+            if let attributes = entry.attributes, !attributes.isEmpty {
+                metadata.append(attributes.keys.sorted().map { "\($0)=\(attributes[$0] ?? "")" }.joined(separator: ","))
+            }
+            if !metadata.isEmpty { line += " {" + metadata.joined(separator: ", ") + "}" }
+            return line
+        }
+        .joined(separator: "\n")
+    }
+
+    var incidentReportText: String {
+        guard let analysis else { return "尚无故障分析结果。请先收集或导入日志并开始分析。" }
+        return FaultIncidentReport.markdown(analysis: analysis, logs: logs, defect: selectedDefect)
     }
 
     // MARK: - Fault analysis

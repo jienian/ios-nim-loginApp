@@ -3,9 +3,10 @@ import XCTest
 
 @MainActor
 final class AuthViewModelTests: XCTestCase {
-    private func makeViewModel() -> AuthViewModel {
+    private func makeViewModel(eventLog: AppEventLog? = nil) -> AuthViewModel {
         let defaults = UserDefaults(suiteName: "AuthViewModelTests-\(UUID().uuidString)")!
-        return AuthViewModel(service: MockAuthService(delayNanoseconds: 1_000), defaults: defaults)
+        return AuthViewModel(service: MockAuthService(delayNanoseconds: 1_000), defaults: defaults,
+                             eventLog: eventLog ?? AppEventLog(defaults: defaults))
     }
 
     func testLoginSuccess() async {
@@ -26,6 +27,21 @@ final class AuthViewModelTests: XCTestCase {
         if case .failure = vm.status {} else {
             XCTFail("Expected failure status")
         }
+    }
+
+    func testLoginFailureWritesStructuredEventWithoutPassword() async {
+        let defaults = UserDefaults(suiteName: "AuthViewModelEventTests-\(UUID().uuidString)")!
+        let eventLog = AppEventLog(defaults: defaults)
+        let vm = AuthViewModel(service: MockAuthService(delayNanoseconds: 1_000), defaults: defaults, eventLog: eventLog)
+        vm.account = "demo@nim.app"
+        vm.password = "wrong-password"
+        await vm.submit()
+
+        let failure = eventLog.entries().first { $0.event == "auth.failure" }
+        XCTAssertNotNil(failure)
+        XCTAssertEqual(failure?.attributes?["error_code"], "invalid_credentials")
+        XCTAssertNotNil(failure?.attributes?["attempt_id"])
+        XCTAssertFalse(eventLog.entries().contains { $0.message.contains("wrong-password") })
     }
 
     func testInvalidInputDoesNotSubmit() async {

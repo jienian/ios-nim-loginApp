@@ -56,6 +56,8 @@ struct HardwareDefect: Identifiable, Codable, Equatable {
 }
 
 /// One line of a collected diagnostic log bundle.
+/// `event`, `source`, and `attributes` are optional so event records written
+/// by earlier builds remain decodable.
 struct DiagnosticLogEntry: Identifiable, Codable, Equatable {
     enum Level: String, Codable {
         case info = "INFO"
@@ -67,9 +69,13 @@ struct DiagnosticLogEntry: Identifiable, Codable, Equatable {
     var level: Level
     var category: String   // thermal / battery / camera / display / system
     var message: String
+    var event: String? = nil
+    var source: String? = nil
+    var attributes: [String: String]? = nil
 }
 
-/// Result of the (rule-based) fault analysis pipeline.
+/// A ranked, evidence-backed fault hypothesis. `confidence` is a calibrated
+/// heuristic score, not a statistical probability.
 struct FaultAnalysis: Equatable {
     struct Finding: Equatable, Identifiable {
         var id: String { title }
@@ -77,10 +83,20 @@ struct FaultAnalysis: Equatable {
         var confidence: Int        // 0...100
         var evidence: String
         var suggestion: String
+        var supportingEvidence: [String] = []
+        var counterEvidence: [String] = []
+        var scoreExplanation: String = ""
+        var occurrenceCount: Int = 0
+        var uniqueHitCount: Int = 0
     }
     var summary: String
     var findings: [Finding]
     var stages: [String]           // pipeline stages that were run
     var errorCount: Int
     var warningCount: Int
+    var analyzedLogCount: Int = 0
+    var uniqueLogCount: Int = 0
+    var duplicateLogCount: Int = 0
+    var dataQuality: String = ""
+    var limitations: [String] = []
 }

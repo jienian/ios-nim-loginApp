@@ -16,8 +16,21 @@ struct AppEventLog {
     }
 
     func record(level: DiagnosticLogEntry.Level, category: String, message: String) {
+        record(level: level, event: nil, category: category, message: message,
+               source: "app-event", attributes: nil)
+    }
+
+    func record(level: DiagnosticLogEntry.Level,
+                event: String?,
+                category: String,
+                message: String,
+                source: String = "app-event",
+                attributes: [String: String]? = nil) {
         var all = entries()
-        all.append(DiagnosticLogEntry(timestamp: Date(), level: level, category: category, message: message))
+        all.append(DiagnosticLogEntry(
+            timestamp: Date(), level: level, category: category, message: message,
+            event: event, source: source, attributes: attributes
+        ))
         if all.count > capacity {
             all.removeFirst(all.count - capacity)
         }

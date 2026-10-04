@@ -32,15 +32,18 @@ final class AuthViewModel: ObservableObject {
 
     private let service: AuthService
     private let defaults: UserDefaults
+    private let eventLog: AppEventLog
 
     private enum Keys {
         static let session = "auth.session"
         static let rememberedAccount = "auth.rememberedAccount"
     }
 
-    init(service: AuthService = MockAuthService(), defaults: UserDefaults = .standard) {
+    init(service: AuthService = MockAuthService(), defaults: UserDefaults = .standard,
+         eventLog: AppEventLog = .shared) {
         self.service = service
         self.defaults = defaults
+        self.eventLog = eventLog
         restoreSession()
         if let saved = defaults.string(forKey: Keys.rememberedAccount) {
             account = saved
@@ -50,7 +53,7 @@ final class AuthViewModel: ObservableObject {
             // Deterministic starting point for the recorded full-flow UI test.
             session = nil
             defaults.removeObject(forKey: Keys.session)
-            AppEventLog.shared.clear()
+            eventLog.clear()
             mode = .login
             account = MockAuthService.demoAccount
             password = MockAuthService.demoPassword
@@ -125,8 +128,14 @@ final class AuthViewModel: ObservableObject {
         status = .loading
         let trimmed = account.trimmingCharacters(in: .whitespaces)
         let action = mode == .login ? "登录" : "注册"
-        AppEventLog.shared.record(level: .info, category: "auth",
-                                  message: "发起\(action)请求 · 账号 \(trimmed)")
+        let flow = mode == .login ? "login" : "register"
+        let attemptID = UUID().uuidString
+        let masked = Self.maskedAccount(trimmed)
+        eventLog.record(
+            level: .info, event: "auth.attempt", category: "auth",
+            message: "发起\(action)请求 · 账号 \(masked)",
+            attributes: ["attempt_id": attemptID, "flow": flow]
+        )
         let started = Date()
         do {
             let newSession: AuthSession
@@ -138,8 +147,12 @@ final class AuthViewModel: ObservableObject {
             }
             session = newSession
             status = .idle
-            AppEventLog.shared.record(level: .info, category: "auth",
-                                      message: "\(action)成功 · 账号 \(trimmed) · 耗时 \(Int(Date().timeIntervalSince(started) * 1000))ms")
+            let durationMS = Int(Date().timeIntervalSince(started) * 1000)
+            eventLog.record(
+                level: .info, event: "auth.success", category: "auth",
+                message: "\(action)成功 · 账号 \(masked) · 耗时 \(durationMS)ms",
+                attributes: ["attempt_id": attemptID, "flow": flow, "duration_ms": String(durationMS)]
+            )
             persist(session: newSession)
             if rememberMe {
                 defaults.set(trimmed, forKey: Keys.rememberedAccount)
@@ -147,12 +160,23 @@ final class AuthViewModel: ObservableObject {
                 defaults.removeObject(forKey: Keys.rememberedAccount)
             }
         } catch let error as AuthError {
-            AppEventLog.shared.record(level: .error, category: "auth",
-                                      message: "\(action)失败：\(error.localizedDescription) · 账号 \(trimmed)")
+            let durationMS = Int(Date().timeIntervalSince(started) * 1000)
+            eventLog.record(
+                level: .error, event: "auth.failure", category: "auth",
+                message: "\(action)失败：\(error.localizedDescription) · 账号 \(masked)",
+                attributes: ["attempt_id": attemptID, "flow": flow,
+                             "duration_ms": String(durationMS), "error_code": Self.errorCode(for: error)]
+            )
             status = .failure(error.localizedDescription)
         } catch {
-            AppEventLog.shared.record(level: .error, category: "network",
-                                      message: "\(action)失败：网络异常 · 账号 \(trimmed)")
+            let durationMS = Int(Date().timeIntervalSince(started) * 1000)
+            eventLog.record(
+                level: .error, event: "network.failure", category: "network",
+                message: "\(action)失败：网络异常 · 账号 \(masked)",
+                attributes: ["attempt_id": attemptID, "flow": flow,
+                             "duration_ms": String(durationMS), "error_code": "network_unavailable",
+                             "underlying_error_type": String(describing: type(of: error))]
+            )
             status = .failure(AuthError.networkUnavailable.localizedDescription)
         }
     }
@@ -168,13 +192,32 @@ final class AuthViewModel: ObservableObject {
 
     func logout() {
         if let account = session?.user.account {
-            AppEventLog.shared.record(level: .info, category: "auth", message: "退出登录 · 账号 \(account)")
+            eventLog.record(level: .info, event: "auth.logout", category: "auth",
+                            message: "退出登录 · 账号 \(Self.maskedAccount(account))")
         }
         session = nil
         password = ""
         confirmPassword = ""
         status = .idle
         defaults.removeObject(forKey: Keys.session)
+    }
+
+    private static func maskedAccount(_ account: String) -> String {
+        if let at = account.firstIndex(of: "@") {
+            let name = account[..<at]
+            let domain = account[account.index(after: at)...]
+            return "\(name.first.map(String.init) ?? "*")***@\(domain)"
+        }
+        guard account.count > 4 else { return "****" }
+        return "\(account.prefix(2))****\(account.suffix(2))"
+    }
+
+    private static func errorCode(for error: AuthError) -> String {
+        switch error {
+        case .invalidCredentials: return "invalid_credentials"
+        case .accountNotFound: return "account_not_found"
+        case .networkUnavailable: return "network_unavailable"
+        }
     }
 
     private func persist(session: AuthSession) {

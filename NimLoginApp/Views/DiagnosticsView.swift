@@ -109,13 +109,24 @@ struct DiagnosticsView: View {
             }
             .disabled(vm.isCollecting)
 
+            Button { vm.importLogsFromClipboard() } label: {
+                Label("从剪贴板导入日志", systemImage: "doc.on.clipboard")
+            }
+
+            if let importMessage = vm.importMessage {
+                Text(importMessage).font(.caption).foregroundStyle(.secondary)
+            }
+
             if !vm.logs.isEmpty {
                 ForEach(vm.logs) { entry in
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("[\(entry.level.rawValue)] \(entry.category)")
+                        Text("[\(entry.level.rawValue)] \(entry.category)\(entry.event.map { " · \($0)" } ?? "")")
                             .font(.caption.bold())
                             .foregroundStyle(entry.level == .error ? .red : (entry.level == .warn ? .orange : .secondary))
                         Text(entry.message).font(.caption)
+                        if let source = entry.source {
+                            Text("来源：\(source)").font(.caption2).foregroundStyle(.secondary)
+                        }
                     }
                 }
                 ShareLink(item: vm.logBundleText) {
@@ -155,23 +166,36 @@ struct DiagnosticsView: View {
             if let a = vm.analysis {
                 Text(a.summary).font(.subheadline)
                     .id("analysis-summary")
+                Text(a.dataQuality).font(.caption).foregroundStyle(.secondary)
                 ForEach(a.findings) { f in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
                             Text(f.title).font(.headline)
                             Spacer()
-                            Text("置信度 \(f.confidence)%").font(.caption.bold()).foregroundStyle(.blue)
+                            Text("评分 \(f.confidence)/100").font(.caption.bold()).foregroundStyle(.blue)
                         }
                         ProgressView(value: Double(f.confidence), total: 100)
                         Text(f.evidence).font(.caption).foregroundStyle(.secondary)
+                        ForEach(f.supportingEvidence, id: \.self) { evidence in
+                            Text("证据：\(evidence)").font(.caption2).foregroundStyle(.secondary)
+                        }
+                        ForEach(f.counterEvidence, id: \.self) { evidence in
+                            Text("反证/恢复：\(evidence)").font(.caption2).foregroundStyle(.secondary)
+                        }
+                        if !f.scoreExplanation.isEmpty {
+                            Text(f.scoreExplanation).font(.caption2).foregroundStyle(.secondary)
+                        }
                         Text("建议：\(f.suggestion)").font(.caption)
                     }
+                }
+                ShareLink(item: vm.incidentReportText) {
+                    Label("导出故障分析报告", systemImage: "doc.text")
                 }
             }
         } header: {
             Text("故障分析")
         } footer: {
-            Text("流程：收集 → 清洗去重 → 按部件分类 → 根因排序 → 生成建议。选中缺陷后再分析，结论会关联到缺陷单。")
+            Text("流程：事件采集 → 解析清洗 → 去重归并 → 多信号评分 → 证据复核 → 生成报告。评分不是统计概率；结论需结合时间线、复现或换件验证。")
         }
     }
 }

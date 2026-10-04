@@ -104,9 +104,8 @@ final class FullFlowUITests: XCTestCase {
         }
         analyseButton.tap()
 
-        // Result: root-cause summary. Drag the list up repeatedly so the
-        // summary + findings cards are fully in frame, then hold.
-        let result = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "最可能根因")).firstMatch
+        // Result: the real wrong-password event is captured as an auth hypothesis.
+        let result = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "登录 / 认证异常")).firstMatch
         XCTAssertTrue(result.waitForExistence(timeout: 25))
         sleep(2)
         for _ in 0..<3 {
