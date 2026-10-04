@@ -89,11 +89,18 @@ final class DiagnosticsViewModel: ObservableObject {
         logs = []
 
         let device = UIDevice.current
-        let entries: [DiagnosticLogEntry] = [
+        // Real app events recorded during actual use (login attempts,
+        // failures, successes) are merged in first, so analysis covers
+        // the login flow too — not only the hardware probes below.
+        let appEvents = AppEventLog.shared.entries()
+        var entries: [DiagnosticLogEntry] = [
             .init(timestamp: Date(), level: .info, category: "system",
                   message: "开始收集诊断日志 · \(device.model) · \(device.systemName) \(device.systemVersion)"),
             .init(timestamp: Date(), level: .info, category: "system",
                   message: "App 版本 1.0 (1) · 登录账号 \(account ?? "未登录")"),
+        ]
+        entries.append(contentsOf: appEvents)
+        entries.append(contentsOf: [
             .init(timestamp: Date(), level: .warn, category: "thermal",
                   message: "thermal 状态偏高：nominal→fair，SoC 温度曲线待复核"),
             .init(timestamp: Date(), level: .error, category: "camera",
@@ -104,7 +111,7 @@ final class DiagnosticsViewModel: ObservableObject {
                   message: "display 触控网格扫描完成，右上区域采样点待复测"),
             .init(timestamp: Date(), level: .info, category: "system",
                   message: "诊断日志收集完成，共生成日志包 1 份"),
-        ]
+        ])
 
         let stepDelay: UInt64 = shouldAutoFlow ? 1_100_000_000 : 260_000_000
         for (i, entry) in entries.enumerated() {

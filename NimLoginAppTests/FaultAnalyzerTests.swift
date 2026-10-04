@@ -32,6 +32,31 @@ final class FaultAnalyzerTests: XCTestCase {
         XCTAssertEqual(r.findings.count, 1)
         XCTAssertTrue(r.summary.contains("先收集日志") || r.summary.contains("尚无"))
     }
+
+    func testLoginFailureIsCaptured() {
+        // A real login-flow failure, as recorded by AppEventLog.
+        let logs = [
+            entry(.info, "auth", "发起登录请求 · 账号 demo@nim.app"),
+            entry(.error, "auth", "登录失败：账号或密码不正确 · 账号 demo@nim.app"),
+            entry(.info, "auth", "登录成功 · 账号 demo@nim.app · 耗时 1203ms"),
+            entry(.error, "camera", "camera OIS 对焦马达响应超时（120ms）"),
+        ]
+        let r = FaultAnalyzer.analyze(logs: logs)
+        XCTAssertEqual(r.findings.first?.title, "登录 / 认证异常")
+        XCTAssertTrue(r.summary.contains("登录 / 认证异常"))
+    }
+
+    func testAppEventLogRoundTrip() {
+        let defaults = UserDefaults(suiteName: "eventlog-test-\(UUID().uuidString)")!
+        let log = AppEventLog(defaults: defaults)
+        XCTAssertTrue(log.entries().isEmpty)
+        log.record(level: .error, category: "auth", message: "登录失败：账号或密码不正确")
+        log.record(level: .info, category: "auth", message: "登录成功")
+        XCTAssertEqual(log.entries().count, 2)
+        XCTAssertEqual(log.entries().first?.level, .error)
+        log.clear()
+        XCTAssertTrue(log.entries().isEmpty)
+    }
 }
 
 @MainActor

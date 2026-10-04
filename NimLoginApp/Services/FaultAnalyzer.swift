@@ -13,6 +13,12 @@ enum FaultAnalyzer {
     }
 
     private static let rules: [Rule] = [
+        Rule(keywords: ["登录失败", "认证失败", "账号或密码不正确", "invalid credentials", "401", "账号不存在"],
+             title: "登录 / 认证异常",
+             suggestion: "核对账号密码与账号状态，确认密码策略与失败锁定策略，检查认证接口返回码分布。"),
+        Rule(keywords: ["网络异常", "network", "请求超时", "timeout", "502", "503", "dns"],
+             title: "网络 / 服务端异常",
+             suggestion: "抓包核对 DNS / TLS 与网关 5xx 日志，检查接口超时与重试策略。"),
         Rule(keywords: ["thermal", "temperature", "过热", "温控"],
              title: "散热 / 温控异常",
              suggestion: "复测高负载场景温度曲线，检查石墨散热片贴合与 SoC 功耗墙设置。"),

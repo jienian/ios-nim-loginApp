@@ -50,6 +50,7 @@ final class AuthViewModel: ObservableObject {
             // Deterministic starting point for the recorded full-flow UI test.
             session = nil
             defaults.removeObject(forKey: Keys.session)
+            AppEventLog.shared.clear()
             mode = .login
             account = MockAuthService.demoAccount
             password = MockAuthService.demoPassword
@@ -122,8 +123,12 @@ final class AuthViewModel: ObservableObject {
         guard !isLoading else { return } // Prevent duplicate taps while loading.
         guard validate() else { return }
         status = .loading
+        let trimmed = account.trimmingCharacters(in: .whitespaces)
+        let action = mode == .login ? "登录" : "注册"
+        AppEventLog.shared.record(level: .info, category: "auth",
+                                  message: "发起\(action)请求 · 账号 \(trimmed)")
+        let started = Date()
         do {
-            let trimmed = account.trimmingCharacters(in: .whitespaces)
             let newSession: AuthSession
             switch mode {
             case .login:
@@ -133,6 +138,8 @@ final class AuthViewModel: ObservableObject {
             }
             session = newSession
             status = .idle
+            AppEventLog.shared.record(level: .info, category: "auth",
+                                      message: "\(action)成功 · 账号 \(trimmed) · 耗时 \(Int(Date().timeIntervalSince(started) * 1000))ms")
             persist(session: newSession)
             if rememberMe {
                 defaults.set(trimmed, forKey: Keys.rememberedAccount)
@@ -140,8 +147,12 @@ final class AuthViewModel: ObservableObject {
                 defaults.removeObject(forKey: Keys.rememberedAccount)
             }
         } catch let error as AuthError {
+            AppEventLog.shared.record(level: .error, category: "auth",
+                                      message: "\(action)失败：\(error.localizedDescription) · 账号 \(trimmed)")
             status = .failure(error.localizedDescription)
         } catch {
+            AppEventLog.shared.record(level: .error, category: "network",
+                                      message: "\(action)失败：网络异常 · 账号 \(trimmed)")
             status = .failure(AuthError.networkUnavailable.localizedDescription)
         }
     }
@@ -156,6 +167,9 @@ final class AuthViewModel: ObservableObject {
     }
 
     func logout() {
+        if let account = session?.user.account {
+            AppEventLog.shared.record(level: .info, category: "auth", message: "退出登录 · 账号 \(account)")
+        }
         session = nil
         password = ""
         confirmPassword = ""
