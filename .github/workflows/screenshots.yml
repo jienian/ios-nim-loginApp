@@ -90,6 +90,9 @@ jobs:
             echo "Unit tests passed."
           fi
 
+          # xcodebuild test shuts the simulator down when it finishes; boot it again before installing.
+          xcrun simctl boot "$DEVICE_ID" || true
+          xcrun simctl bootstatus "$DEVICE_ID" -b
           xcrun simctl install "$DEVICE_ID" "$APP_PATH"
 
           mkdir -p screenshots
