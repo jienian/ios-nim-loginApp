@@ -92,7 +92,7 @@ jobs:
           set +e
           xcodebuild test \
             -project NimLoginApp.xcodeproj \
-            -scheme NimLoginApp \
+            -scheme NimLoginAppUITests \
             -destination "platform=iOS Simulator,id=$DEVICE_ID" \
             -only-testing:NimLoginAppUITests/FullFlowUITests/testFullAppFlow \
             -resultBundlePath build/test-results/FullFlow.xcresult \
@@ -101,6 +101,7 @@ jobs:
           set -e
           sleep 2
           kill -INT "$RECORD_PID" || true
+          ( sleep 12; kill -9 "$RECORD_PID" 2>/dev/null ) &
           wait "$RECORD_PID" || true
           ls -lh videos
           if [ "$TEST_STATUS" != "0" ]; then
