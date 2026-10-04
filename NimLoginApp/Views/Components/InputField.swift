@@ -40,10 +40,12 @@ struct InputField: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 11)
+            .background(Color(.secondarySystemBackground))
             .background(
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(error == nil ? Color.secondary.opacity(0.3) : Color.red, lineWidth: 1)
             )
+            .clipShape(RoundedRectangle(cornerRadius: 10))
 
             if let error {
                 Text(error)

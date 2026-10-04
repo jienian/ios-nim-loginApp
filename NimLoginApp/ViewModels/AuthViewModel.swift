@@ -48,10 +48,14 @@ final class AuthViewModel: ObservableObject {
     }
 
     /// Used by the GitHub Actions screenshot job: launch with
-    /// `SCREENSHOT=login|login-error|register|home` to render a fixed state.
+    /// `SCREENSHOT=login|login-error|register|home` (append `-dark` for dark mode)
+    /// to render a fixed state.
     private func configureForScreenshotIfNeeded() {
         guard let arg = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("SCREENSHOT=") }) else { return }
-        let modeName = String(arg.dropFirst("SCREENSHOT=".count))
+        var modeName = String(arg.dropFirst("SCREENSHOT=".count))
+        if modeName.hasSuffix("-dark") {
+            modeName = String(modeName.dropLast("-dark".count))
+        }
         session = nil
         defaults.removeObject(forKey: Keys.session)
         switch modeName {

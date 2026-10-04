@@ -37,11 +37,14 @@ struct HomeView: View {
                         )
                 }
                 .padding(.horizontal, 24)
+
+                ThemePicker()
+                    .padding(.horizontal, 24)
             }
             .padding(24)
             .navigationTitle("主页")
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.white)
+            .background(Color(.systemBackground))
         }
     }
 }

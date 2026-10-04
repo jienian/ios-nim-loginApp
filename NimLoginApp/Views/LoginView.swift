@@ -7,6 +7,7 @@ struct LoginView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                ThemePicker()
                 header
                 form
                 if case .failure(let message) = viewModel.status {
@@ -28,6 +29,7 @@ struct LoginView: View {
             }
             .padding(24)
         }
+        .background(Color(.systemBackground))
         .sheet(isPresented: $showForgotPassword) {
             ForgotPasswordView()
         }

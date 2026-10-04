@@ -10,6 +10,10 @@
 | --- | --- | --- | --- |
 | ![登录页](docs/screenshots/login.png) | ![登录失败](docs/screenshots/login-error.png) | ![注册页](docs/screenshots/register.png) | ![主页](docs/screenshots/home.png) |
 
+| 登录（深色） | 主页（深色） |
+| --- | --- |
+| ![登录页深色](docs/screenshots/login-dark.png) | ![主页深色](docs/screenshots/home-dark.png) |
+
 演示账号：`demo@nim.app` / `123456`，故意输错密码即可看到失败提示。以上截图由 GitHub Actions 的云端 macOS 模拟器真实运行生成。
 
 ## 功能
@@ -27,6 +31,7 @@
 - 主页：显示当前用户、登录时间，支持退出登录
 - 忘记密码：底部弹层，校验邮箱后提示已发送重置邮件（模拟）
 - Face ID 按钮：入口和交互占位，点击会提示演示模式未启用生物识别
+- **外观 / Dark Mode**：登录页和主页都有「外观」切换，支持 `跟随系统 / 浅色 / 深色` 三档，选择会持久化保存；深色下输入框、背景、文字自动适配系统语义色
 
 ## 技术结构（MVVM）
 
@@ -47,7 +52,8 @@ NimLoginApp/
 │       ├── InputField.swift    // 带错误提示的输入框组件
 │       └── PrimaryButton.swift // 带 loading 状态的主按钮
 └── Utils/
-    └── Validators.swift        // 邮箱/手机号/密码校验，可单测
+    ├── Validators.swift        // 邮箱/手机号/密码校验，可单测
+    └── AppTheme.swift          // 外观主题：跟随系统/浅色/深色，持久化 + ThemePicker
 NimLoginAppTests/
 ├── ValidatorsTests.swift
 └── AuthViewModelTests.swift

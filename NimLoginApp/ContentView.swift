@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var authViewModel = AuthViewModel()
+    @StateObject private var themeManager = ThemeManager()
 
     var body: some View {
         Group {
@@ -11,6 +12,7 @@ struct ContentView: View {
                 LoginView(viewModel: authViewModel)
             }
         }
-        .preferredColorScheme(.light)
+        .environmentObject(themeManager)
+        .preferredColorScheme(themeManager.theme.colorScheme)
     }
 }
