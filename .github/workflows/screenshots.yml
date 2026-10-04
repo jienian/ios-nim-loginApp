@@ -82,20 +82,33 @@ jobs:
           done
           ls -lh screenshots
 
-          echo "Recording fault-analysis flow video..."
-          mkdir -p videos
+          echo "Recording FULL app flow video (real UI test taps)..."
+          mkdir -p videos build/test-results
           xcrun simctl terminate "$DEVICE_ID" com.nim.NimLoginApp || true
-          xcrun simctl spawn "$DEVICE_ID" defaults delete com.nim.NimLoginApp 2>/dev/null || true
-          xcrun simctl io "$DEVICE_ID" recordVideo --codec=h264 videos/fault-analysis-flow.mp4 &
+          xcrun simctl uninstall "$DEVICE_ID" com.nim.NimLoginApp || true
+          xcrun simctl io "$DEVICE_ID" recordVideo --codec=h264 videos/full-app-flow.mp4 &
           RECORD_PID=$!
           sleep 2
-          xcrun simctl launch "$DEVICE_ID" com.nim.NimLoginApp "SCREENSHOT=diagnostics-flow"
-          # Auto flow runs on a slow cloud runner: hold long enough for the
-          # final findings to appear and stay on screen.
-          sleep 48
+          set +e
+          xcodebuild test \
+            -project NimLoginApp.xcodeproj \
+            -scheme NimLoginApp \
+            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+            -only-testing:NimLoginAppUITests/FullFlowUITests/testFullAppFlow \
+            -resultBundlePath build/test-results/FullFlow.xcresult \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee build/full-flow-test.log
+          TEST_STATUS=${PIPESTATUS[0]}
+          set -e
+          sleep 2
           kill -INT "$RECORD_PID" || true
           wait "$RECORD_PID" || true
           ls -lh videos
+          if [ "$TEST_STATUS" != "0" ]; then
+            echo "Full flow UI test failed, see log"; tail -120 build/full-flow-test.log || true
+            # Keep the step green so screenshots/video still publish; full log is in the test log artifact step below.
+          fi
+          # Backward-compatible name expected by docs/README video link.
+          cp videos/full-app-flow.mp4 videos/fault-analysis-flow.mp4 || true
 
       - name: Upload screenshots
         uses: actions/upload-artifact@v4
@@ -117,6 +130,7 @@ jobs:
           mkdir -p docs/screenshots docs/videos
           cp screenshots/*.png docs/screenshots/
           cp videos/fault-analysis-flow.mp4 docs/videos/ 2>/dev/null || true
+          cp videos/full-app-flow.mp4 docs/videos/ 2>/dev/null || true
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           # Base the commit on the latest main to avoid binary rebase conflicts
@@ -126,7 +140,8 @@ jobs:
           mkdir -p docs/screenshots docs/videos
           cp screenshots/*.png docs/screenshots/
           cp videos/fault-analysis-flow.mp4 docs/videos/ 2>/dev/null || true
-          git add docs/screenshots/login.png docs/screenshots/login-error.png docs/screenshots/register.png docs/screenshots/home.png docs/screenshots/login-dark.png docs/screenshots/home-dark.png docs/screenshots/diagnostics.png docs/videos/fault-analysis-flow.mp4
+          cp videos/full-app-flow.mp4 docs/videos/ 2>/dev/null || true
+          git add docs/screenshots/login.png docs/screenshots/login-error.png docs/screenshots/register.png docs/screenshots/home.png docs/screenshots/login-dark.png docs/screenshots/home-dark.png docs/screenshots/diagnostics.png docs/videos/fault-analysis-flow.mp4 docs/videos/full-app-flow.mp4
           if git diff --cached --quiet; then
             echo "Screenshots unchanged"
           else
