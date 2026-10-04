@@ -8,9 +8,9 @@
 
 | 登录 | 登录失败 | 注册 | 登录成功 |
 | --- | --- | --- | --- |
-| ![登录页](docs/screenshots/login.svg) | ![登录失败](docs/screenshots/login-error.svg) | ![注册页](docs/screenshots/register.svg) | ![主页](docs/screenshots/home.svg) |
+| ![登录页](docs/screenshots/login.png) | ![登录失败](docs/screenshots/login-error.png) | ![注册页](docs/screenshots/register.png) | ![主页](docs/screenshots/home.png) |
 
-演示账号：`demo@nim.app` / `123456`，故意输错密码即可看到失败提示。以上为 UI 预览图，真机/模拟器运行效果以 Xcode Run 为准。
+演示账号：`demo@nim.app` / `123456`，故意输错密码即可看到失败提示。以上截图由 GitHub Actions 的云端 macOS 模拟器真实运行生成。
 
 ## 功能
 
