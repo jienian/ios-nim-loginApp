@@ -17,6 +17,11 @@
 		00000000000000000000006C /* PrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000026 /* PrimaryButton.swift */; };
 		00000000000000000000006D /* Validators.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000027 /* Validators.swift */; };
 		000000000000000000000071 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000002B /* AppTheme.swift */; };
+		000000000000000000000073 /* Diagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000002D /* Diagnostics.swift */; };
+		000000000000000000000074 /* FaultAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000002E /* FaultAnalyzer.swift */; };
+		000000000000000000000075 /* DiagnosticsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000002F /* DiagnosticsViewModel.swift */; };
+		000000000000000000000076 /* DiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000030 /* DiagnosticsView.swift */; };
+		000000000000000000000077 /* FaultAnalyzerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000031 /* FaultAnalyzerTests.swift */; };
 		00000000000000000000006F /* ValidatorsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000029 /* ValidatorsTests.swift */; };
 		000000000000000000000070 /* AuthViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000002A /* AuthViewModelTests.swift */; };
 		000000000000000000000072 /* AppThemeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000002C /* AppThemeTests.swift */; };
@@ -41,6 +46,11 @@
 		00000000000000000000002A /* AuthViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModelTests.swift; sourceTree = "<group>"; };
 		00000000000000000000002B /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		00000000000000000000002C /* AppThemeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppThemeTests.swift; sourceTree = "<group>"; };
+		00000000000000000000002D /* Diagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Diagnostics.swift; sourceTree = "<group>"; };
+		00000000000000000000002E /* FaultAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultAnalyzer.swift; sourceTree = "<group>"; };
+		00000000000000000000002F /* DiagnosticsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsViewModel.swift; sourceTree = "<group>"; };
+		000000000000000000000030 /* DiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsView.swift; sourceTree = "<group>"; };
+		000000000000000000000031 /* FaultAnalyzerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaultAnalyzerTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -52,13 +62,13 @@
 		000000000000000000000002 = {isa = PBXGroup; children = ( 000000000000000000000003 /* NimLoginApp */, 00000000000000000000000C /* NimLoginAppTests */, 00000000000000000000000B /* Products */, ); sourceTree = "<group>"; };
 		00000000000000000000000B = {isa = PBXGroup; children = ( 000000000000000000000016 /* NimLoginApp.app */, 000000000000000000000017 /* NimLoginAppTests.xctest */, ); name = Products; sourceTree = "<group>"; };
 		000000000000000000000003 = {isa = PBXGroup; children = ( 00000000000000000000001E /* NimLoginAppApp.swift */, 00000000000000000000001F /* ContentView.swift */, 000000000000000000000004 /* Models */, 000000000000000000000005 /* Services */, 000000000000000000000006 /* ViewModels */, 000000000000000000000007 /* Views */, 000000000000000000000009 /* Utils */, 000000000000000000000028 /* Assets.xcassets */, ); path = NimLoginApp; sourceTree = "<group>"; };
-		000000000000000000000004 = {isa = PBXGroup; children = ( 000000000000000000000020 /* User.swift */, ); path = Models; sourceTree = "<group>"; };
-		000000000000000000000005 = {isa = PBXGroup; children = ( 000000000000000000000021 /* AuthService.swift */, ); path = Services; sourceTree = "<group>"; };
-		000000000000000000000006 = {isa = PBXGroup; children = ( 000000000000000000000022 /* AuthViewModel.swift */, ); path = ViewModels; sourceTree = "<group>"; };
+		000000000000000000000004 = {isa = PBXGroup; children = ( 000000000000000000000020 /* User.swift */, 00000000000000000000002D /* Diagnostics.swift */, ); path = Models; sourceTree = "<group>"; };
+		000000000000000000000005 = {isa = PBXGroup; children = ( 000000000000000000000021 /* AuthService.swift */, 00000000000000000000002E /* FaultAnalyzer.swift */, ); path = Services; sourceTree = "<group>"; };
+		000000000000000000000006 = {isa = PBXGroup; children = ( 000000000000000000000022 /* AuthViewModel.swift */, 00000000000000000000002F /* DiagnosticsViewModel.swift */, ); path = ViewModels; sourceTree = "<group>"; };
 		000000000000000000000009 = {isa = PBXGroup; children = ( 000000000000000000000027 /* Validators.swift */, 00000000000000000000002B /* AppTheme.swift */, ); path = Utils; sourceTree = "<group>"; };
-		000000000000000000000007 = {isa = PBXGroup; children = ( 000000000000000000000023 /* LoginView.swift */, 000000000000000000000024 /* HomeView.swift */, 000000000000000000000008 /* Components */, ); path = Views; sourceTree = "<group>"; };
+		000000000000000000000007 = {isa = PBXGroup; children = ( 000000000000000000000023 /* LoginView.swift */, 000000000000000000000024 /* HomeView.swift */, 000000000000000000000030 /* DiagnosticsView.swift */, 000000000000000000000008 /* Components */, ); path = Views; sourceTree = "<group>"; };
 		000000000000000000000008 = {isa = PBXGroup; children = ( 000000000000000000000025 /* InputField.swift */, 000000000000000000000026 /* PrimaryButton.swift */, ); path = Components; sourceTree = "<group>"; };
-		00000000000000000000000C = {isa = PBXGroup; children = ( 000000000000000000000029 /* ValidatorsTests.swift */, 00000000000000000000002A /* AuthViewModelTests.swift */, 00000000000000000000002C /* AppThemeTests.swift */, ); path = NimLoginAppTests; sourceTree = "<group>"; };
+		00000000000000000000000C = {isa = PBXGroup; children = ( 000000000000000000000029 /* ValidatorsTests.swift */, 00000000000000000000002A /* AuthViewModelTests.swift */, 00000000000000000000002C /* AppThemeTests.swift */, 000000000000000000000031 /* FaultAnalyzerTests.swift */, ); path = NimLoginAppTests; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -88,11 +98,16 @@
 				00000000000000000000006C /* PrimaryButton.swift in Sources */,
 				00000000000000000000006D /* Validators.swift in Sources */,
 				000000000000000000000071 /* AppTheme.swift in Sources */,
+				000000000000000000000073 /* Diagnostics.swift in Sources */,
+				000000000000000000000074 /* FaultAnalyzer.swift in Sources */,
+				000000000000000000000075 /* DiagnosticsViewModel.swift in Sources */,
+				000000000000000000000076 /* DiagnosticsView.swift in Sources */,
 			); runOnlyForDeploymentPostprocessing = 0; };
 		000000000000000000000035 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (
 				00000000000000000000006F /* ValidatorsTests.swift in Sources */,
 				000000000000000000000070 /* AuthViewModelTests.swift in Sources */,
 				000000000000000000000072 /* AppThemeTests.swift in Sources */,
+				000000000000000000000077 /* FaultAnalyzerTests.swift in Sources */,
 			); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 

@@ -10,9 +10,9 @@
 | --- | --- | --- | --- |
 | ![登录页](docs/screenshots/login.png) | ![登录失败](docs/screenshots/login-error.png) | ![注册页](docs/screenshots/register.png) | ![主页](docs/screenshots/home.png) |
 
-| 登录（深色） | 主页（深色） |
-| --- | --- |
-| ![登录页深色](docs/screenshots/login-dark.png) | ![主页深色](docs/screenshots/home-dark.png) |
+| 登录（深色） | 主页（深色） | 工程师诊断中心 |
+| --- | --- | --- |
+| ![登录页深色](docs/screenshots/login-dark.png) | ![主页深色](docs/screenshots/home-dark.png) | ![工程师诊断中心](docs/screenshots/diagnostics.png) |
 
 演示账号：`demo@nim.app` / `123456`，故意输错密码即可看到失败提示。以上截图由 GitHub Actions 的云端 macOS 模拟器真实运行生成。
 
@@ -32,6 +32,10 @@
 - 忘记密码：底部弹层，校验邮箱后提示已发送重置邮件（模拟）
 - Face ID 按钮：入口和交互占位，点击会提示演示模式未启用生物识别
 - **外观 / Dark Mode**：登录页和主页都有「外观」切换，支持 `跟随系统 / 浅色 / 深色` 三档，选择会持久化保存；深色下输入框、背景、文字自动适配系统语义色
+- **工程师诊断中心**（登录后从主页进入）：
+  - 硬件缺陷追踪：按状态筛选（待处理/分析中/已定位/已修复）、新建缺陷（部件/严重程度 P0-P3/设备型号/现象）、点按推进状态、滑动删除，本地持久化
+  - 诊断日志收集：一键模拟收集设备/系统/部件健康日志（分级 INFO/WARN/ERROR 流式生成），可导出日志包或清空
+  - 故障分析优化流程：`收集 → 清洗去重 → 按部件分类 → 根因排序 → 生成建议` 五步流水线，按规则给出根因置信度、证据和下一步建议，并关联所选缺陷单
 
 ## 技术结构（MVVM）
 
@@ -40,14 +44,18 @@ NimLoginApp/
 ├── NimLoginAppApp.swift        // App 入口
 ├── ContentView.swift           // 根据登录态切换 登录页 / 主页
 ├── Models/
-│   └── User.swift              // User、AuthSession
+│   ├── User.swift              // User、AuthSession
+│   └── Diagnostics.swift       // 硬件缺陷、诊断日志、故障分析模型
 ├── Services/
-│   └── AuthService.swift       // AuthService 协议 + Mock 实现，真接口替换这里即可
+│   ├── AuthService.swift       // AuthService 协议 + Mock 实现，真接口替换这里即可
+│   └── FaultAnalyzer.swift     // 故障分析流水线：分类、根因排序、建议
 ├── ViewModels/
-│   └── AuthViewModel.swift     // 登录交互逻辑核心：校验、状态、异步登录
+│   ├── AuthViewModel.swift     // 登录交互逻辑核心：校验、状态、异步登录
+│   └── DiagnosticsViewModel.swift // 缺陷追踪、日志收集、分析状态
 ├── Views/
 │   ├── LoginView.swift         // 登录/注册页
 │   ├── HomeView.swift          // 登录成功后的主页
+│   ├── DiagnosticsView.swift   // 工程师诊断中心
 │   └── Components/
 │       ├── InputField.swift    // 带错误提示的输入框组件
 │       └── PrimaryButton.swift // 带 loading 状态的主按钮
@@ -56,7 +64,9 @@ NimLoginApp/
     └── AppTheme.swift          // 外观主题：跟随系统/浅色/深色，持久化 + ThemePicker
 NimLoginAppTests/
 ├── ValidatorsTests.swift
-└── AuthViewModelTests.swift
+├── AuthViewModelTests.swift
+├── AppThemeTests.swift
+└── FaultAnalyzerTests.swift
 ```
 
 把 `MockAuthService` 换成真实接口时，只需要实现 `AuthService` 协议（`login` / `register`），`ViewModel` 和 `View` 不用改。

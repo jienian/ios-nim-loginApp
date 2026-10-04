@@ -25,6 +25,21 @@ struct HomeView: View {
                     }
                 }
 
+                NavigationLink {
+                    DiagnosticsView(account: viewModel.session?.user.account)
+                } label: {
+                    Label("工程师诊断中心", systemImage: "wrench.and.screwdriver")
+                        .font(.subheadline.weight(.medium))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 24)
+
                 Button(role: .destructive) {
                     viewModel.logout()
                 } label: {

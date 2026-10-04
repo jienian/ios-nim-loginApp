@@ -6,7 +6,11 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if authViewModel.session != nil {
+            if authViewModel.screenshotShowDiagnostics {
+                NavigationStack {
+                    DiagnosticsView(account: authViewModel.session?.user.account)
+                }
+            } else if authViewModel.session != nil {
                 HomeView(viewModel: authViewModel)
             } else {
                 LoginView(viewModel: authViewModel)

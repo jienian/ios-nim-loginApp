@@ -28,6 +28,7 @@ final class AuthViewModel: ObservableObject {
 
     // Session
     @Published private(set) var session: AuthSession?
+    @Published private(set) var screenshotShowDiagnostics = false
 
     private let service: AuthService
     private let defaults: UserDefaults
@@ -73,12 +74,13 @@ final class AuthViewModel: ObservableObject {
             account = "new@nim.app"
             password = "Nim123456!"
             confirmPassword = "Nim123456!"
-        case "home":
+        case "home", "diagnostics":
             session = AuthSession(
                 user: User(id: "demo", account: MockAuthService.demoAccount, nickname: "Nim Demo"),
                 token: "screenshot-token",
                 loginDate: Date()
             )
+            screenshotShowDiagnostics = modeName == "diagnostics"
         default:
             break
         }
