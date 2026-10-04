@@ -1,0 +1,129 @@
+import Foundation
+
+@MainActor
+final class AuthViewModel: ObservableObject {
+    enum Mode {
+        case login
+        case register
+    }
+
+    enum Status: Equatable {
+        case idle
+        case loading
+        case failure(String)
+    }
+
+    // Form
+    @Published var account: String = ""
+    @Published var password: String = ""
+    @Published var confirmPassword: String = ""
+    @Published var rememberMe: Bool = true
+    @Published var mode: Mode = .login
+
+    // Interaction state
+    @Published var accountError: String?
+    @Published var passwordError: String?
+    @Published var confirmPasswordError: String?
+    @Published private(set) var status: Status = .idle
+
+    // Session
+    @Published private(set) var session: AuthSession?
+
+    private let service: AuthService
+    private let defaults: UserDefaults
+
+    private enum Keys {
+        static let session = "auth.session"
+        static let rememberedAccount = "auth.rememberedAccount"
+    }
+
+    init(service: AuthService = MockAuthService(), defaults: UserDefaults = .standard) {
+        self.service = service
+        self.defaults = defaults
+        restoreSession()
+        if let saved = defaults.string(forKey: Keys.rememberedAccount) {
+            account = saved
+        }
+    }
+
+    var isLoading: Bool { status == .loading }
+
+    var canSubmit: Bool {
+        !account.trimmingCharacters(in: .whitespaces).isEmpty
+            && !password.isEmpty
+            && (mode == .login || !confirmPassword.isEmpty)
+            && !isLoading
+    }
+
+    var passwordStrength: Validators.PasswordStrength {
+        Validators.passwordStrength(for: password)
+    }
+
+    func validate() -> Bool {
+        accountError = Validators.accountError(for: account)
+        passwordError = Validators.passwordError(for: password)
+        if mode == .register {
+            confirmPasswordError = confirmPassword == password ? nil : "两次输入的密码不一致"
+        } else {
+            confirmPasswordError = nil
+        }
+        return accountError == nil && passwordError == nil && confirmPasswordError == nil
+    }
+
+    func submit() async {
+        guard !isLoading else { return } // Prevent duplicate taps while loading.
+        guard validate() else { return }
+        status = .loading
+        do {
+            let trimmed = account.trimmingCharacters(in: .whitespaces)
+            let newSession: AuthSession
+            switch mode {
+            case .login:
+                newSession = try await service.login(account: trimmed, password: password)
+            case .register:
+                newSession = try await service.register(account: trimmed, password: password)
+            }
+            session = newSession
+            status = .idle
+            persist(session: newSession)
+            if rememberMe {
+                defaults.set(trimmed, forKey: Keys.rememberedAccount)
+            } else {
+                defaults.removeObject(forKey: Keys.rememberedAccount)
+            }
+        } catch let error as AuthError {
+            status = .failure(error.localizedDescription)
+        } catch {
+            status = .failure(AuthError.networkUnavailable.localizedDescription)
+        }
+    }
+
+    func switchMode() {
+        mode = mode == .login ? .register : .login
+        status = .idle
+        accountError = nil
+        passwordError = nil
+        confirmPasswordError = nil
+        confirmPassword = ""
+    }
+
+    func logout() {
+        session = nil
+        password = ""
+        confirmPassword = ""
+        status = .idle
+        defaults.removeObject(forKey: Keys.session)
+    }
+
+    private func persist(session: AuthSession) {
+        if let data = try? JSONEncoder().encode(session) {
+            defaults.set(data, forKey: Keys.session)
+        }
+    }
+
+    private func restoreSession() {
+        guard let data = defaults.data(forKey: Keys.session),
+              let saved = try? JSONDecoder().decode(AuthSession.self, from: data) else { return }
+        session = saved
+    }
+}
