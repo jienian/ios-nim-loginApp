@@ -1,10 +1,20 @@
 import XCTest
 
 /// Full user journey used for the recorded demo video:
-/// launch -> login -> home -> diagnostics centre -> collect logs -> fault analysis -> result.
+/// launch -> wrong password (login fails) -> correct password (login succeeds)
+/// -> home -> diagnostics centre -> collect logs -> fault analysis -> result
+/// -> back home -> log out -> login screen again.
 final class FullFlowUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
+    }
+
+    /// Clear a text/secure field by deleting its current (masked) contents.
+    private func clearField(_ field: XCUIElement) {
+        field.tap()
+        if let value = field.value as? String, !value.isEmpty {
+            field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count))
+        }
     }
 
     func testFullAppFlow() throws {
@@ -36,9 +46,23 @@ final class FullFlowUITests: XCTestCase {
         }
         sleep(1)
 
-        // Tap login
+        // --- Attempt 1: wrong password -> login must FAIL with an error ---
+        clearField(passwordField)
+        passwordField.typeText("111111")
+        sleep(1)
+
         let loginButton = app.buttons["登录"]
         XCTAssertTrue(loginButton.waitForExistence(timeout: 5))
+        loginButton.tap()
+
+        let errorText = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "账号或密码不正确")).firstMatch
+        XCTAssertTrue(errorText.waitForExistence(timeout: 10))
+        sleep(3) // hold the failure message on screen
+
+        // --- Attempt 2: correct password -> login succeeds ---
+        clearField(passwordField)
+        passwordField.typeText("123456")
+        sleep(1)
         loginButton.tap()
 
         // Home
@@ -91,6 +115,20 @@ final class FullFlowUITests: XCTestCase {
             start.press(forDuration: 0.1, thenDragTo: end)
             sleep(1)
         }
-        sleep(5) // hold the conclusion on screen for the end of the video
+        sleep(5) // hold the conclusion on screen
+
+        // --- Close the loop: back home, log out, land on the login screen ---
+        let backButton = app.buttons["主页"]
+        if backButton.exists {
+            backButton.tap()
+        } else {
+            app.navigationBars.buttons.firstMatch.tap()
+        }
+        let logoutButton = app.buttons["退出登录"]
+        XCTAssertTrue(logoutButton.waitForExistence(timeout: 10))
+        sleep(2)
+        logoutButton.tap()
+        XCTAssertTrue(app.staticTexts["欢迎回来"].waitForExistence(timeout: 10))
+        sleep(3) // end where we started: the login screen
     }
 }
