@@ -83,7 +83,7 @@ enum FaultAnalyzer {
     ]
 
     private static let healthyTerms = [
-        "健康度良好", "状态正常", "运行正常", "检查通过", "扫描完成", "初始化完成", "无异常", "正常完成", "healthy", "completed successfully", "initialization completed", "状态 nominal",
+        "健康度良好", "状态正常", "运行正常", "检查通过", "扫描完成", "初始化完成", "无异常", "正常完成", "healthy", "completed successfully", "initialization completed", "状态 nominal", "状态：nominal", "当前状态：nominal",
     ]
 
     private static let recoveryTerms = [
@@ -116,7 +116,7 @@ enum FaultAnalyzer {
             let strongGroups = groups.filter(\.isStrong).count
             let weakGroups = uniqueHitCount - strongGroups
 
-            let lastHitOffset = indexed.last { pair in allHits.contains(pair.element) }?.offset ?? 0
+            let lastHitOffset = indexed.last { pair in allHits.contains { $0.id == pair.element.id } }?.offset ?? 0
             let counterEvidence = recoveryEvidence(for: rule, in: logs, afterOffset: lastHitOffset)
             let defectAligned = isDefectAligned(rule: rule, defect: defect)
 
@@ -258,6 +258,9 @@ enum FaultAnalyzer {
             if var existing = grouped[key] {
                 existing.entries.append(entry)
                 existing.isStrong = existing.isStrong || isStrong
+                if severityRank(entry) > severityRank(existing.representative) {
+                    existing.representative = entry
+                }
                 grouped[key] = existing
             } else {
                 grouped[key] = HitGroup(representative: entry, entries: [entry], isStrong: isStrong)
@@ -276,6 +279,17 @@ enum FaultAnalyzer {
         if let event = entry.event?.lowercased() {
             if event.hasPrefix("auth."), rule.key != "auth" { return nil }
             if event.hasPrefix("network."), rule.key != "network" { return nil }
+        }
+
+        // Imported logs usually carry the subsystem in `category`. Treat a
+        // known subsystem as the evidence domain: a network log mentioning
+        // "/login" is not auth evidence, and a camera log mentioning
+        // "timeout" is not network evidence. Free-text `system` logs may still
+        // match by content because they have no specific subsystem.
+        let knownCategories = Set(rules.map(\.key))
+        let entryCategory = entry.category.lowercased()
+        if knownCategories.contains(entryCategory), entryCategory != rule.key {
+            return nil
         }
 
         let text = searchableText(entry)

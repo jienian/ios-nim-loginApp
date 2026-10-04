@@ -124,12 +124,24 @@ final class AuthViewModel: ObservableObject {
 
     func submit() async {
         guard !isLoading else { return } // Prevent duplicate taps while loading.
-        guard validate() else { return }
-        status = .loading
         let trimmed = account.trimmingCharacters(in: .whitespaces)
         let action = mode == .login ? "登录" : "注册"
         let flow = mode == .login ? "login" : "register"
         let attemptID = UUID().uuidString
+        guard validate() else {
+            // Form validation is also a real login-flow failure. Record the
+            // reasons (never the password value) so diagnostics can see it.
+            let reasons = [accountError, passwordError, confirmPasswordError]
+                .compactMap { $0 }
+                .joined(separator: "；")
+            eventLog.record(
+                level: .warn, event: "auth.validation_failure", category: "auth",
+                message: "\(action)表单校验失败：\(reasons.isEmpty ? "输入不完整" : reasons) · 账号 \(Self.maskedAccount(trimmed))",
+                attributes: ["attempt_id": attemptID, "flow": flow]
+            )
+            return
+        }
+        status = .loading
         let masked = Self.maskedAccount(trimmed)
         eventLog.record(
             level: .info, event: "auth.attempt", category: "auth",
@@ -161,8 +173,11 @@ final class AuthViewModel: ObservableObject {
             }
         } catch let error as AuthError {
             let durationMS = Int(Date().timeIntervalSince(started) * 1000)
+            let isNetwork = error == .networkUnavailable
             eventLog.record(
-                level: .error, event: "auth.failure", category: "auth",
+                level: .error,
+                event: isNetwork ? "network.failure" : "auth.failure",
+                category: isNetwork ? "network" : "auth",
                 message: "\(action)失败：\(error.localizedDescription) · 账号 \(masked)",
                 attributes: ["attempt_id": attemptID, "flow": flow,
                              "duration_ms": String(durationMS), "error_code": Self.errorCode(for: error)]

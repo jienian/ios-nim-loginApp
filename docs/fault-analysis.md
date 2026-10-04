@@ -15,6 +15,7 @@ App 输出的是**排序后的根因假设和证据强度评分**，不是已经
 | 事件 | 触发 | 关键属性 |
 | --- | --- | --- |
 | `auth.attempt` | 发起登录/注册 | `attempt_id`、`flow` |
+| `auth.validation_failure` | 表单校验失败（账号格式、密码长度等） | `attempt_id`、`flow` |
 | `auth.success` | 登录/注册成功 | `attempt_id`、`flow`、`duration_ms` |
 | `auth.failure` | 凭据或账号类失败 | `attempt_id`、`flow`、`duration_ms`、`error_code` |
 | `network.failure` | 非预期网络/服务错误 | `attempt_id`、`flow`、`duration_ms`、`error_code`、`underlying_error_type` |
@@ -33,7 +34,7 @@ App 输出的是**排序后的根因假设和证据强度评分**，不是已经
 
 - App 版本和 build
 - 设备型号、系统版本
-- `ProcessInfo` 热状态
+- `ProcessInfo` 热状态（serious / critical 时按 WARN 进入分析，nominal / fair 只作上下文）
 - 电池电量、充电状态和低电量模式（模拟器可能没有读数，此时明确标为不可用）
 - 系统运行时间和时区
 - 可用存储空间

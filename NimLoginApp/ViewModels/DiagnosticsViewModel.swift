@@ -120,14 +120,25 @@ final class DiagnosticsViewModel: ObservableObject {
 
         let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
+        let thermalState = ProcessInfo.processInfo.thermalState
         let thermal: String
-        switch ProcessInfo.processInfo.thermalState {
+        switch thermalState {
         case .nominal: thermal = "nominal"
         case .fair: thermal = "fair"
         case .serious: thermal = "serious"
         case .critical: thermal = "critical"
         @unknown default: thermal = "unknown"
         }
+        let thermalIsHigh = thermalState == .serious || thermalState == .critical
+        let thermalEntry = DiagnosticLogEntry(
+            timestamp: now,
+            level: thermalIsHigh ? .warn : .info,
+            category: "thermal",
+            message: thermalIsHigh
+                ? "thermal 状态偏高：\(thermal)（设备即时热状态快照，需结合负载复核）"
+                : "thermal 当前状态：\(thermal)（设备即时状态快照，不是单独的故障结论）",
+            source: "device-snapshot"
+        )
 
         let batteryText: String
         if device.batteryLevel >= 0 {
@@ -150,9 +161,7 @@ final class DiagnosticsViewModel: ObservableObject {
             .init(timestamp: now, level: .info, category: "system",
                   message: "App 版本 \(shortVersion) (\(build)) · 登录账号 \(account.map { _ in "已登录（账号已脱敏）" } ?? "未登录")",
                   source: "app-bundle"),
-            .init(timestamp: now, level: .info, category: "thermal",
-                  message: "thermal 当前状态：\(thermal)（设备即时状态快照，不是单独的故障结论）",
-                  source: "device-snapshot"),
+            thermalEntry,
             .init(timestamp: now, level: .info, category: "battery",
                   message: batteryText, source: "device-snapshot"),
             .init(timestamp: now, level: .info, category: "system",

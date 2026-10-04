@@ -26,6 +26,7 @@ final class FaultAnalyzerTests: XCTestCase {
         ]
         let r = FaultAnalyzer.analyze(logs: logs)
         XCTAssertEqual(r.findings.first?.title, "摄像头模组异常")
+        XCTAssertFalse(r.findings.contains { $0.title == "网络 / 服务端异常" })
         XCTAssertEqual(r.errorCount, 1)
         XCTAssertEqual(r.warningCount, 1)
         XCTAssertGreaterThan(r.findings.first?.confidence ?? 0, 50)
@@ -98,6 +99,7 @@ final class FaultAnalyzerTests: XCTestCase {
         ]
         let r = FaultAnalyzer.analyze(logs: logs)
         XCTAssertEqual(r.findings.first?.title, "网络 / 服务端异常")
+        XCTAssertFalse(r.findings.contains { $0.title == "登录 / 认证异常" })
     }
 
     func testParserSupportsExportedAndPlainTextFormats() {
@@ -115,6 +117,16 @@ final class FaultAnalyzerTests: XCTestCase {
         XCTAssertEqual(logs[1].category, "network")
         XCTAssertTrue(logs[1].message.contains("timeout"))
         XCTAssertEqual(logs[2].category, "system")
+    }
+
+    func testParserRestoresExportedMetadata() {
+        let line = "[ERROR] 2026-10-05T00:01:02Z auth: 登录失败：账号或密码不正确 {event=auth.failure, source=app-event, attempt_id=123, error_code=invalid_credentials}"
+        let logs = DiagnosticLogParser.parse(line)
+        XCTAssertEqual(logs.count, 1)
+        XCTAssertEqual(logs.first?.event, "auth.failure")
+        XCTAssertEqual(logs.first?.source, "app-event")
+        XCTAssertEqual(logs.first?.attributes?["error_code"], "invalid_credentials")
+        XCTAssertFalse(logs.first?.message.contains("{") == true)
     }
 
     func testAnalyzeRawText() {
