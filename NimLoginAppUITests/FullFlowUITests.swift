@@ -80,9 +80,19 @@ final class FullFlowUITests: XCTestCase {
         }
         analyseButton.tap()
 
-        // Result: root-cause summary
+        // Result: root-cause summary. Scroll it fully into view and hold it.
         let result = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "最可能根因")).firstMatch
         XCTAssertTrue(result.waitForExistence(timeout: 25))
+        var scrolls = 0
+        while !result.isHittable && scrolls < 6 {
+            app.swipeUp()
+            scrolls += 1
+        }
+        sleep(2)
+        // One gentle extra scroll so the confidence/evidence card below is in frame too.
+        if result.isHittable {
+            app.swipeUp()
+        }
         sleep(5) // hold the conclusion on screen for the end of the video
     }
 }
