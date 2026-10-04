@@ -12,12 +12,20 @@ final class DiagnosticsViewModel: ObservableObject {
     @Published var isAnalyzing = false
     @Published var analysisStageIndex = 0
     @Published var selectedDefectID: String?
+    /// True when launched with SCREENSHOT=diagnostics-flow (used for video recording):
+    /// the view auto-collects logs and then auto-runs fault analysis.
+    let shouldAutoFlow: Bool
 
     private let defaults: UserDefaults
     private enum Keys { static let defects = "diagnostics.defects" }
 
     init(defaults: UserDefaults = .standard, loadSamplesIfEmpty: Bool = true) {
         self.defaults = defaults
+        shouldAutoFlow = ProcessInfo.processInfo.arguments.contains("SCREENSHOT=diagnostics-flow")
+        if shouldAutoFlow {
+            // Slower, video-friendly pacing.
+            selectedDefectID = HardwareDefect.samples.first?.id
+        }
         if let data = defaults.data(forKey: Keys.defects),
            let saved = try? JSONDecoder().decode([HardwareDefect].self, from: data), !saved.isEmpty {
             defects = saved
@@ -98,12 +106,22 @@ final class DiagnosticsViewModel: ObservableObject {
                   message: "诊断日志收集完成，共生成日志包 1 份"),
         ]
 
+        let stepDelay: UInt64 = shouldAutoFlow ? 1_400_000_000 : 260_000_000
         for (i, entry) in entries.enumerated() {
-            try? await Task.sleep(nanoseconds: 260_000_000)
+            try? await Task.sleep(nanoseconds: stepDelay)
             logs.append(entry)
             collectionProgress = Double(i + 1) / Double(entries.count)
         }
         isCollecting = false
+    }
+
+    /// Video/demo flow: wait a beat, collect logs slowly, pause, then analyse.
+    func runAutoFlow(account: String?) async {
+        guard shouldAutoFlow, logs.isEmpty, analysis == nil else { return }
+        try? await Task.sleep(nanoseconds: 3_000_000_000)
+        await collectLogs(account: account)
+        try? await Task.sleep(nanoseconds: 2_000_000_000)
+        await runAnalysis()
     }
 
     func clearLogs() {
@@ -124,8 +142,9 @@ final class DiagnosticsViewModel: ObservableObject {
         isAnalyzing = true
         analysis = nil
         analysisStageIndex = 0
+        let stageDelay: UInt64 = shouldAutoFlow ? 1_600_000_000 : 300_000_000
         for i in FaultAnalyzer.stages.indices {
-            try? await Task.sleep(nanoseconds: 300_000_000)
+            try? await Task.sleep(nanoseconds: stageDelay)
             analysisStageIndex = i + 1
         }
         analysis = FaultAnalyzer.analyze(logs: logs, defect: selectedDefect)

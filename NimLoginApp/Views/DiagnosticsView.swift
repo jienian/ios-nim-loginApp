@@ -8,10 +8,23 @@ struct DiagnosticsView: View {
     var account: String? = nil
 
     var body: some View {
-        List {
-            defectSection
-            logSection
-            analysisSection
+        ScrollViewReader { proxy in
+            List {
+                defectSection
+                logSection
+                    .id("logs")
+                analysisSection
+                    .id("analysis")
+            }
+            .onChange(of: vm.logs.count) { _, _ in
+                withAnimation { proxy.scrollTo("logs", anchor: .top) }
+            }
+            .onChange(of: vm.isAnalyzing) { _, analyzing in
+                if analyzing { withAnimation { proxy.scrollTo("analysis", anchor: .top) } }
+            }
+            .onChange(of: vm.analysis?.summary) { _, summary in
+                if summary != nil { withAnimation { proxy.scrollTo("analysis", anchor: .bottom) } }
+            }
         }
         .navigationTitle("工程师诊断中心")
         .navigationBarTitleDisplayMode(.inline)
@@ -22,6 +35,9 @@ struct DiagnosticsView: View {
             }
         }
         .sheet(isPresented: $showAddDefect) { AddDefectView(vm: vm) }
+        .task {
+            await vm.runAutoFlow(account: account)
+        }
     }
 
     // MARK: Defects

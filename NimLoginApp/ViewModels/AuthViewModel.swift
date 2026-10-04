@@ -74,13 +74,13 @@ final class AuthViewModel: ObservableObject {
             account = "new@nim.app"
             password = "Nim123456!"
             confirmPassword = "Nim123456!"
-        case "home", "diagnostics":
+        case "home", "diagnostics", "diagnostics-flow":
             session = AuthSession(
                 user: User(id: "demo", account: MockAuthService.demoAccount, nickname: "Nim Demo"),
                 token: "screenshot-token",
                 loginDate: Date()
             )
-            screenshotShowDiagnostics = modeName == "diagnostics"
+            screenshotShowDiagnostics = modeName == "diagnostics" || modeName == "diagnostics-flow"
         default:
             break
         }

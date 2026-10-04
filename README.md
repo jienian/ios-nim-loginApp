@@ -16,6 +16,8 @@
 
 演示账号：`demo@nim.app` / `123456`，故意输错密码即可看到失败提示。以上截图由 GitHub Actions 的云端 macOS 模拟器真实运行生成。
 
+📹 **完整故障分析演示视频**：[docs/videos/fault-analysis-flow.mp4](docs/videos/fault-analysis-flow.mp4)（云端模拟器录屏：自动收集诊断日志 → 五步故障分析 → 根因结论）
+
 ## 功能
 
 - 账号输入：支持邮箱 / 手机号，自动判断类型并校验格式
