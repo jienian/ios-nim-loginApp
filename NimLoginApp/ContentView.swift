@@ -11,6 +11,6 @@ struct ContentView: View {
                 LoginView(viewModel: authViewModel)
             }
         }
-        .animation(.easeInOut, value: authViewModel.session != nil)
+        .preferredColorScheme(.light)
     }
 }

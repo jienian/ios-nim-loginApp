@@ -40,6 +40,8 @@ struct HomeView: View {
             }
             .padding(24)
             .navigationTitle("主页")
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.white)
         }
     }
 }
