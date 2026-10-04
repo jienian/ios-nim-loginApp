@@ -106,7 +106,7 @@ final class DiagnosticsViewModel: ObservableObject {
                   message: "诊断日志收集完成，共生成日志包 1 份"),
         ]
 
-        let stepDelay: UInt64 = shouldAutoFlow ? 1_400_000_000 : 260_000_000
+        let stepDelay: UInt64 = shouldAutoFlow ? 1_100_000_000 : 260_000_000
         for (i, entry) in entries.enumerated() {
             try? await Task.sleep(nanoseconds: stepDelay)
             logs.append(entry)
@@ -142,7 +142,7 @@ final class DiagnosticsViewModel: ObservableObject {
         isAnalyzing = true
         analysis = nil
         analysisStageIndex = 0
-        let stageDelay: UInt64 = shouldAutoFlow ? 1_600_000_000 : 300_000_000
+        let stageDelay: UInt64 = shouldAutoFlow ? 1_200_000_000 : 300_000_000
         for i in FaultAnalyzer.stages.indices {
             try? await Task.sleep(nanoseconds: stageDelay)
             analysisStageIndex = i + 1
