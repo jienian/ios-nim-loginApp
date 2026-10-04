@@ -90,8 +90,9 @@ jobs:
           RECORD_PID=$!
           sleep 2
           xcrun simctl launch "$DEVICE_ID" com.nim.NimLoginApp "SCREENSHOT=diagnostics-flow"
-          # Auto flow: 3s intro + ~10s log collection + 2s pause + ~8s analysis + hold result
-          sleep 32
+          # Auto flow runs on a slow cloud runner: hold long enough for the
+          # final findings to appear and stay on screen.
+          sleep 48
           kill -INT "$RECORD_PID" || true
           wait "$RECORD_PID" || true
           ls -lh videos
@@ -118,11 +119,17 @@ jobs:
           cp videos/fault-analysis-flow.mp4 docs/videos/ 2>/dev/null || true
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Base the commit on the latest main to avoid binary rebase conflicts
+          # when another run advanced main while this run was recording.
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p docs/screenshots docs/videos
+          cp screenshots/*.png docs/screenshots/
+          cp videos/fault-analysis-flow.mp4 docs/videos/ 2>/dev/null || true
           git add docs/screenshots/login.png docs/screenshots/login-error.png docs/screenshots/register.png docs/screenshots/home.png docs/screenshots/login-dark.png docs/screenshots/home-dark.png docs/screenshots/diagnostics.png docs/videos/fault-analysis-flow.mp4
           if git diff --cached --quiet; then
             echo "Screenshots unchanged"
           else
             git commit -m "docs: update simulator screenshots [skip ci]"
-            git pull --rebase origin main
             git push origin HEAD:main
           fi
