@@ -90,9 +90,18 @@ final class FullFlowUITests: XCTestCase {
         XCTAssertTrue(collectButton.waitForExistence(timeout: 5))
         collectButton.tap()
 
-        // Wait for collection to finish (export button appears)
+        // Wait for collection to finish (export button appears).
+        // The export row sits below the collected log entries, and a SwiftUI
+        // List only materialises rows near the viewport — so scroll while
+        // waiting instead of expecting it to exist off-screen.
         let exportButton = app.buttons["导出日志包"]
-        XCTAssertTrue(exportButton.waitForExistence(timeout: 25))
+        var exportAttempts = 0
+        while !exportButton.exists && exportAttempts < 10 {
+            if exportButton.waitForExistence(timeout: 3) { break }
+            app.swipeUp()
+            exportAttempts += 1
+        }
+        XCTAssertTrue(exportButton.exists, "导出日志包 should appear after log collection finishes")
         sleep(2)
 
         // Run fault analysis
