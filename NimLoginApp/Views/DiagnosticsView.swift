@@ -23,7 +23,9 @@ struct DiagnosticsView: View {
                 if analyzing { withAnimation { proxy.scrollTo("analysis", anchor: .top) } }
             }
             .onChange(of: vm.analysis?.summary) { _, summary in
-                if summary != nil { withAnimation { proxy.scrollTo("analysis", anchor: .bottom) } }
+                if summary != nil {
+                    withAnimation { proxy.scrollTo("analysis-summary", anchor: .top) }
+                }
             }
         }
         .navigationTitle("工程师诊断中心")
@@ -152,6 +154,7 @@ struct DiagnosticsView: View {
 
             if let a = vm.analysis {
                 Text(a.summary).font(.subheadline)
+                    .id("analysis-summary")
                 ForEach(a.findings) { f in
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
