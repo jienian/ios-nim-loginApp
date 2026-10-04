@@ -46,6 +46,14 @@ final class AuthViewModel: ObservableObject {
             account = saved
         }
         configureForScreenshotIfNeeded()
+        if ProcessInfo.processInfo.arguments.contains("UITEST_FULL_FLOW") {
+            // Deterministic starting point for the recorded full-flow UI test.
+            session = nil
+            defaults.removeObject(forKey: Keys.session)
+            mode = .login
+            account = MockAuthService.demoAccount
+            password = MockAuthService.demoPassword
+        }
     }
 
     /// Used by the GitHub Actions screenshot job: launch with

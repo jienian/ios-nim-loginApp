@@ -18,6 +18,8 @@
 
 📹 **完整故障分析演示视频**：[docs/videos/fault-analysis-flow.mp4](docs/videos/fault-analysis-flow.mp4)（云端模拟器录屏：自动收集诊断日志 → 五步故障分析 → 根因结论）
 
+📹 **完整 App 流程视频（真实点击）**：[docs/videos/full-app-flow.mp4](docs/videos/full-app-flow.mp4)（从启动登录页开始：输入账号密码 → 登录 → 主页 → 工程师诊断中心 → 收集日志 → 故障分析 → 根因结论，由 UI 测试在云端模拟器真实点击录制）
+
 ## 功能
 
 - 账号输入：支持邮箱 / 手机号，自动判断类型并校验格式
