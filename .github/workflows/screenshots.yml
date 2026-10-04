@@ -82,6 +82,20 @@ jobs:
           done
           ls -lh screenshots
 
+          echo "Recording fault-analysis flow video..."
+          mkdir -p videos
+          xcrun simctl terminate "$DEVICE_ID" com.nim.NimLoginApp || true
+          xcrun simctl spawn "$DEVICE_ID" defaults delete com.nim.NimLoginApp 2>/dev/null || true
+          xcrun simctl io "$DEVICE_ID" recordVideo --codec=h264 videos/fault-analysis-flow.mp4 &
+          RECORD_PID=$!
+          sleep 2
+          xcrun simctl launch "$DEVICE_ID" com.nim.NimLoginApp "SCREENSHOT=diagnostics-flow"
+          # Auto flow: 3s intro + ~10s log collection + 2s pause + ~8s analysis + hold result
+          sleep 32
+          kill -INT "$RECORD_PID" || true
+          wait "$RECORD_PID" || true
+          ls -lh videos
+
       - name: Upload screenshots
         uses: actions/upload-artifact@v4
         with:
@@ -89,14 +103,22 @@ jobs:
           path: screenshots/*.png
           if-no-files-found: error
 
+      - name: Upload flow video
+        uses: actions/upload-artifact@v4
+        with:
+          name: fault-analysis-video
+          path: videos/*.mp4
+          if-no-files-found: error
+
       - name: Commit screenshots to docs
         if: github.ref == 'refs/heads/main'
         run: |
-          mkdir -p docs/screenshots
+          mkdir -p docs/screenshots docs/videos
           cp screenshots/*.png docs/screenshots/
+          cp videos/fault-analysis-flow.mp4 docs/videos/ 2>/dev/null || true
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/screenshots/login.png docs/screenshots/login-error.png docs/screenshots/register.png docs/screenshots/home.png docs/screenshots/login-dark.png docs/screenshots/home-dark.png docs/screenshots/diagnostics.png
+          git add docs/screenshots/login.png docs/screenshots/login-error.png docs/screenshots/register.png docs/screenshots/home.png docs/screenshots/login-dark.png docs/screenshots/home-dark.png docs/screenshots/diagnostics.png docs/videos/fault-analysis-flow.mp4
           if git diff --cached --quiet; then
             echo "Screenshots unchanged"
           else
