@@ -70,6 +70,13 @@ jobs:
           xcrun simctl boot "$DEVICE_ID" || true
           xcrun simctl bootstatus "$DEVICE_ID" -b
           xcrun simctl install "$DEVICE_ID" "$APP_PATH"
+          echo "Running unit tests..."
+          xcodebuild test \
+            -project NimLoginApp.xcodeproj \
+            -scheme NimLoginApp \
+            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+            -only-testing:NimLoginAppTests \
+            CODE_SIGNING_ALLOWED=NO
 
           mkdir -p screenshots
           for mode in login login-error register home login-dark home-dark diagnostics; do
